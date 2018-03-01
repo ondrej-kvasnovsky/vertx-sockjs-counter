@@ -1,5 +1,7 @@
+package counter;
+
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.bridge.BridgeEventType;
@@ -10,10 +12,12 @@ import java.util.Optional;
 public class CounterHandler implements Handler<BridgeEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(CounterHandler.class);
-    private final Vertx vertx;
+    private final EventBus eventBus;
+    private final CounterRepository repository;
 
-    CounterHandler(Vertx vertx) {
-        this.vertx = vertx;
+    CounterHandler(EventBus eventBus, CounterRepository repository) {
+        this.eventBus = eventBus;
+        this.repository = repository;
     }
 
     @Override
@@ -28,16 +32,15 @@ public class CounterHandler implements Handler<BridgeEvent> {
     }
 
     private void clientToServer() {
-        CounterRepository repository = new CounterRepository(vertx.sharedData());
-        Optional<Integer> counter = repository.getCounter();
+        Optional<Integer> counter = repository.get();
         if (counter.isPresent()) {
             Integer value = counter.get() + 1;
-            repository.save(value);
-            vertx.eventBus().publish("out", value);
+            repository.update(value);
+            eventBus.publish("out", value);
         } else {
             Integer value = 1;
-            repository.save(value);
-            vertx.eventBus().publish("out", value);
+            repository.update(value);
+            eventBus.publish("out", value);
         }
     }
 }

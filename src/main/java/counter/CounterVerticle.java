@@ -1,17 +1,13 @@
+package counter;
+
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.bridge.BridgeEventType;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.shareddata.SharedData;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.handler.ErrorHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
-
-import java.util.Optional;
 
 public class CounterVerticle extends AbstractVerticle {
 
@@ -32,7 +28,11 @@ public class CounterVerticle extends AbstractVerticle {
                 .addOutboundPermitted(new PermittedOptions().setAddressRegex("out"))
                 .addInboundPermitted(new PermittedOptions().setAddressRegex("in"));
 
-        CounterHandler counterHandler = new CounterHandler(vertx);
+        SharedData data = vertx.sharedData();
+        CounterRepository repository = new CounterRepository(data);
+        EventBus eventBus = vertx.eventBus();
+        CounterHandler counterHandler = new CounterHandler(eventBus, repository);
+
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
         return sockJSHandler.bridge(options, counterHandler);
     }
